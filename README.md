@@ -51,5 +51,5 @@ Training: Run the provided training script to train the CNN model on FER-2013 or
 Prediction: Use the trained model to predict facial expressions from images or real-time webcam feeds.  
 Feature-Based Models (Optional): Switch to HOG or LBP-based feature extraction for classical machine learning models.  
 # Results
-Achieved an accuracy of 54% on the validation set.  
+Achieved an accuracy of 58% on the validation set.  
 Visualized training/validation accuracy and loss curves for performance insights.
