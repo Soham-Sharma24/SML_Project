@@ -3,16 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FER Model</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Emotion Recognition</title>
+    <script>
+async function uploadAndPredict(event) {
+    event.preventDefault(); // Prevent default form behavior
+    
+    const fileInput = document.getElementById('imageInput');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select an image!');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+        const response = await fetch('http://127.0.0.1:5000/predict', {  // Ensure the correct port
+            method: 'POST',
+            body: formData,
+        });
+        
+        if (response.ok) {
+            const resultPage = await response.text(); // Render result page
+            document.open();
+            document.write(resultPage);
+            document.close();
+        } else {
+            console.error('Server error:', response.status);
+            alert(`Error: ${response.status} - ${response.statusText}`);
+        }
+    } catch (error) {
+        console.error('Fetch error:', error);
+        alert('Unable to connect to the server. Is it running?');
+    }
+}
+
+    </script>
 </head>
 <body>
-    <h1>Facial Emotion Recognition</h1>
-    <form action="/predict" method="post" enctype="multipart/form-data">
-        <input type="file" name="image" required>
+    <h1>Emotion Recognition</h1>
+    <form id="uploadForm" onsubmit="uploadAndPredict(event)">
+        <input type="file" id="imageInput" name="image" accept="image/*" required>
         <button type="submit">Upload and Predict</button>
     </form>
 </body>
-<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-
 </html>
