@@ -114,34 +114,96 @@ plot_class_distribution(train_dir)
 print("Test Set Class Distribution:")
 plot_class_distribution(test_dir)
 
-from sklearn.ensemble import RandomForestClassifier
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from tensorflow.keras.utils import to_categorical
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
-import seaborn as sns
+import numpy as np
+
+def prepare_data(data_dir):
+    emotion_folders = os.listdir(data_dir)
+    images = []
+    labels = []
+    label_map = {emotion: idx for idx, emotion in enumerate(emotion_folders)}
+
+    for emotion in emotion_folders:
+        emotion_path = os.path.join(data_dir, emotion)
+        for img_name in os.listdir(emotion_path):
+            img_path = os.path.join(emotion_path, img_name)
+            img = preprocess_image(img_path, augment=True)  # Use augmentation here
+            if img is not None:
+                images.append(img)
+                labels.append(label_map[emotion])
+
+    images = np.array(images).reshape(-1, 48, 48, 1)  # Add channel dimension
+    labels = np.array(labels)
+    return images, labels
+
+# Prepare data
+X, y = prepare_data(train_dir)
+y = to_categorical(y, num_classes=len(set(y)))  # One-hot encode labels
+
+# Split into train and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+
+def create_cnn_model(input_shape=(48, 48, 1), num_classes=7):
+    model = Sequential([
+        Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+        MaxPooling2D(pool_size=(2, 2)),
+        Dropout(0.25),
+        
+        Conv2D(64, (3, 3), activation='relu'),
+        MaxPooling2D(pool_size=(2, 2)),
+        Dropout(0.25),
+        
+        Conv2D(128, (3, 3), activation='relu'),
+        MaxPooling2D(pool_size=(2, 2)),
+        Dropout(0.25),
+        
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(num_classes, activation='softmax')  # Output layer
+    ])
+    return model
+
+model = create_cnn_model(num_classes=y_train.shape[1])
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+history = model.fit(
+    X_train, y_train,
+    validation_data=(X_val, y_val),
+    epochs=25,
+    batch_size=64,
+    verbose=1
+)
+
+model_path = 'fer_cnn_model.h5'
+model.save(model_path)
+print(f"Model saved to {model_path}")
+
+# Prepare test data
+X_test, y_test = prepare_data(test_dir)
+y_test = to_categorical(y_test, num_classes=y_train.shape[1])
+
+# Evaluate
+test_loss, test_accuracy = model.evaluate(X_test, y_test)
+print(f"Test Accuracy: {test_accuracy:.4f}")
+
 import matplotlib.pyplot as plt
 
-# Split the extracted features into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(train_features, train_labels, test_size=0.2, random_state=42)
+plt.figure(figsize=(12, 4))
+plt.subplot(1, 2, 1)
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.legend()
+plt.title('Loss')
 
-# Initialize the Random Forest Classifier
-rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+plt.subplot(1, 2, 2)
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.legend()
+plt.title('Accuracy')
 
-# Train the model
-rf_model.fit(X_train, y_train)
-
-# Make predictions
-y_pred = rf_model.predict(X_test)
-
-# Evaluate the model
-print("Accuracy Score:", accuracy_score(y_test, y_pred))
-print("\nClassification Report:")
-print(classification_report(y_test, y_pred))
-
-# Confusion Matrix
-conf_matrix = confusion_matrix(y_test, y_pred)
-plt.figure(figsize=(10, 7))
-sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=set(y_train), yticklabels=set(y_train))
-plt.title("Confusion Matrix")
-plt.xlabel("Predicted")
-plt.ylabel("Actual")
 plt.show()
