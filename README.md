@@ -21,7 +21,7 @@ Visualization of training and validation performance.
 
 ## Feature Extraction Techniques:
 
-Optional use of HOG or LBP for feature-based classification with Random Forest or SVM models.
+Optional use of LBP for feature-based classification with Random Forest or SVM models.
 # Installation and Requirements
 ## Hardware Requirements
 Processor: Multi-core CPU or GPU (NVIDIA preferred).  
